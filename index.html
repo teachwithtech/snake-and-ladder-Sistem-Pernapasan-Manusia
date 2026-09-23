@@ -1,0 +1,607 @@
+from pathlib import Path
+
+html = r'''<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ular Tangga - Sistem Pernapasan Manusia</title>
+<style>
+:root{
+  --blue:#1769aa; --sky:#eaf7ff; --yellow:#ffd95a; --green:#48b36b;
+  --red:#ef5b5b; --purple:#805ad5; --dark:#18324b; --white:#fff;
+  --p1:#ff6b6b; --p2:#4dabf7;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;font-family:"Trebuchet MS",Arial,sans-serif;color:var(--dark);
+  background:linear-gradient(135deg,#dff5ff,#fff8d9);min-height:100vh;
+}
+button,input{font:inherit}
+.hidden{display:none!important}
+.screen{min-height:100vh;padding:24px}
+.card{
+  background:rgba(255,255,255,.95);border-radius:28px;padding:28px;
+  box-shadow:0 12px 35px rgba(25,70,100,.15)
+}
+#landing{display:flex;align-items:center;justify-content:center}
+.landing-card{max-width:900px;width:100%;text-align:center}
+.logo{font-size:clamp(48px,8vw,86px);line-height:1;margin-bottom:8px}
+h1{font-size:clamp(30px,5vw,54px);margin:8px 0;color:var(--blue)}
+.subtitle{font-size:20px;margin-bottom:26px}
+.name-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin:22px 0}
+.name-box{padding:20px;border-radius:20px;background:#f4fbff;border:3px solid #cfeeff;text-align:left}
+.name-box.p2{border-color:#d8e7ff}
+.name-box label{display:block;font-weight:800;margin-bottom:8px}
+.name-box input{
+  width:100%;padding:14px 16px;border:2px solid #cfe3ef;border-radius:14px;outline:none;
+}
+.name-box input:focus{border-color:var(--blue)}
+.primary{
+  border:0;border-radius:18px;padding:15px 28px;background:var(--blue);color:#fff;
+  font-weight:900;cursor:pointer;box-shadow:0 7px 0 #0f4f80;transition:.15s
+}
+.primary:active{transform:translateY(5px);box-shadow:0 2px 0 #0f4f80}
+.info{margin-top:20px;display:flex;justify-content:center;gap:10px;flex-wrap:wrap}
+.badge{padding:9px 13px;border-radius:999px;background:#eef8ff;font-weight:700}
+.badge.hots{background:#ffe7e7;color:#b52b2b}
+
+#game{padding:14px}
+.game-wrap{max-width:1400px;margin:auto}
+.topbar{display:grid;grid-template-columns:1fr auto 1fr;gap:14px;align-items:center;margin-bottom:12px}
+.team{
+  background:#fff;padding:12px 16px;border-radius:20px;box-shadow:0 5px 20px #18324b18;
+  border:4px solid transparent;min-width:180px
+}
+.team.p1{border-color:var(--p1)} .team.p2{border-color:var(--p2)}
+.team.active{transform:scale(1.03);box-shadow:0 0 0 5px #ffd95a88,0 8px 24px #18324b22}
+.team-name{font-weight:900;font-size:18px}
+.score{font-size:25px;font-weight:900}
+.turn{
+  text-align:center;background:#fff;border-radius:18px;padding:10px 18px;font-weight:900;
+  box-shadow:0 5px 20px #18324b18
+}
+.layout{display:grid;grid-template-columns:minmax(600px,1fr) 310px;gap:16px;align-items:start}
+.board-card{background:#fff;padding:12px;border-radius:25px;box-shadow:0 8px 28px #18324b20}
+.board{
+  position:relative;display:grid;grid-template-columns:repeat(10,1fr);
+  aspect-ratio:1/1;border:5px solid var(--dark);border-radius:15px;overflow:hidden;
+  background:#fff;
+}
+.cell{
+  position:relative;border:1px solid #ffffffaa;display:flex;align-items:flex-start;justify-content:flex-start;
+  padding:5px;font-weight:900;min-width:0;overflow:hidden;
+}
+.cell:nth-child(odd){background:#fff4c7}.cell:nth-child(even){background:#dff4ff}
+.cell-num{font-size:clamp(11px,1.4vw,18px);background:#ffffffcc;border-radius:8px;padding:2px 5px;z-index:2}
+.cell-q{position:absolute;right:4px;bottom:3px;font-size:clamp(9px,1.1vw,13px);opacity:.7}
+.marker{
+  position:absolute;right:3px;top:2px;font-size:clamp(18px,2.3vw,31px);z-index:2;
+  filter:drop-shadow(1px 2px 1px #0002)
+}
+.marker.snake{animation:wiggle 1.5s infinite}.marker.ladder{animation:pulse 1.5s infinite}
+@keyframes wiggle{0%,100%{transform:rotate(-4deg)}50%{transform:rotate(5deg) translateY(-2px)}}
+@keyframes pulse{50%{transform:scale(1.12)}}
+.pawn{
+  position:absolute;z-index:20;font-size:clamp(24px,3vw,43px);line-height:1;
+  transform:translate(-50%,-50%);transition:left .22s ease,top .22s ease,transform .22s ease;
+  filter:drop-shadow(2px 3px 2px #0004)
+}
+.pawn.move{transform:translate(-50%,-55%) scale(1.18)}
+.path-overlay{
+  position:absolute;inset:0;pointer-events:none;z-index:8;
+}
+.controls{display:flex;gap:10px;justify-content:center;margin-top:12px;flex-wrap:wrap}
+.dice{
+  width:80px;height:80px;border-radius:20px;background:#fff;border:4px solid var(--dark);
+  display:flex;align-items:center;justify-content:center;font-size:48px;font-weight:900;
+  box-shadow:0 6px 0 #b8c7d1;cursor:pointer
+}
+.dice.rolling{animation:roll .6s ease}
+@keyframes roll{0%{transform:rotate(0) scale(1)}50%{transform:rotate(180deg) scale(1.15)}100%{transform:rotate(360deg) scale(1)}}
+.roll-btn{min-width:160px}
+.side{display:flex;flex-direction:column;gap:12px}
+.side-card{background:#fff;border-radius:22px;padding:16px;box-shadow:0 8px 24px #18324b18}
+.side-card h3{margin:0 0 10px}
+.rules{font-size:14px;line-height:1.5}
+.legend{display:grid;grid-template-columns:1fr 1fr;gap:7px;font-size:13px}
+.legend span{padding:8px;border-radius:10px;background:#f5f8fa}
+.log{max-height:250px;overflow:auto;font-size:13px}
+.log div{padding:7px 0;border-bottom:1px solid #edf1f3}
+.restart{background:#eef6fb;color:var(--dark);border:0;border-radius:12px;padding:10px;cursor:pointer;font-weight:800}
+
+.modal{
+  position:fixed;inset:0;background:rgba(14,35,52,.68);display:flex;align-items:center;justify-content:center;
+  z-index:100;padding:18px
+}
+.modal-card{background:#fff;max-width:720px;width:100%;border-radius:28px;padding:25px;box-shadow:0 20px 60px #0005}
+.modal-title{font-size:26px;font-weight:900;color:var(--blue);margin-bottom:6px}
+.question{font-size:22px;font-weight:900;line-height:1.35;margin:18px 0}
+.hots-label{
+  display:inline-block;background:#e74747;color:#fff;padding:5px 10px;border-radius:999px;font-size:12px;font-weight:900
+}
+.options{display:grid;gap:10px}
+.option{
+  text-align:left;border:3px solid #dfeaf0;background:#f9fcfe;border-radius:15px;padding:13px 15px;
+  cursor:pointer;font-weight:800;transition:.15s
+}
+.option:hover{border-color:var(--blue);background:#edf8ff}
+.option.correct{background:#d9f8df;border-color:#37a855}
+.option.wrong{background:#ffe0e0;border-color:#e05b5b}
+.explain{margin-top:14px;padding:12px 14px;border-radius:14px;background:#f2f7fa;line-height:1.5}
+.modal-actions{text-align:right;margin-top:14px}
+.continue{border:0;border-radius:14px;padding:12px 20px;background:var(--green);color:#fff;font-weight:900;cursor:pointer}
+.event{
+  text-align:center;padding:12px;border-radius:15px;margin-bottom:12px;font-weight:900
+}
+.event.ladder{background:#ddf7e4;color:#22763b}.event.snake{background:#ffe2e2;color:#a52f2f}
+.winner{text-align:center}
+.winner .big{font-size:70px}
+@media(max-width:1000px){
+  .layout{grid-template-columns:1fr}
+  .side{display:grid;grid-template-columns:1fr 1fr}
+  .topbar{grid-template-columns:1fr 1fr}
+  .turn{grid-column:1/-1;grid-row:1}
+}
+@media(max-width:650px){
+  .screen{padding:10px}.name-grid{grid-template-columns:1fr}.side{display:block}
+  .topbar{grid-template-columns:1fr 1fr}.team{min-width:0}.team-name{font-size:14px}
+  .score{font-size:20px}.board-card{padding:5px}.cell{padding:2px}
+  .cell-num{font-size:10px}.marker{font-size:18px}
+}
+</style>
+</head>
+<body>
+
+<section id="landing" class="screen">
+  <div class="card landing-card">
+    <div class="logo">🫁🎲🐍</div>
+    <h1>ULAR TANGGA<br>SISTEM PERNAPASAN</h1>
+    <div class="subtitle">Petualangan memahami sistem pernapasan manusia • Kelas VI</div>
+
+    <div class="name-grid">
+      <div class="name-box">
+        <label>🔴 Nama Kelompok 1</label>
+        <input id="name1" maxlength="24" placeholder="Contoh: Paru-Paru Hebat">
+      </div>
+      <div class="name-box p2">
+        <label>🔵 Nama Kelompok 2</label>
+        <input id="name2" maxlength="24" placeholder="Contoh: Bronkus Cerdas">
+      </div>
+    </div>
+
+    <button class="primary" id="startBtn">🚀 MULAI PERMAINAN</button>
+
+    <div class="info">
+      <span class="badge">🎯 100 kotak</span>
+      <span class="badge">❓ Setiap kotak = soal</span>
+      <span class="badge hots">🔥 Kotak HOTS = poin ekstra</span>
+      <span class="badge">🐍 Ular & tangga aktif</span>
+    </div>
+  </div>
+</section>
+
+<section id="game" class="screen hidden">
+  <div class="game-wrap">
+    <div class="topbar">
+      <div id="team1" class="team p1">
+        <div class="team-name">Kelompok 1</div>
+        <div class="score">⭐ <span id="score1">0</span></div>
+      </div>
+      <div id="turn" class="turn">Giliran: Kelompok 1</div>
+      <div id="team2" class="team p2">
+        <div class="team-name">Kelompok 2</div>
+        <div class="score">⭐ <span id="score2">0</span></div>
+      </div>
+    </div>
+
+    <div class="layout">
+      <div class="board-card">
+        <div id="board" class="board"></div>
+        <div class="controls">
+          <div id="dice" class="dice">🎲</div>
+          <button id="rollBtn" class="primary roll-btn">🎲 LEMPAR DADU</button>
+        </div>
+      </div>
+
+      <aside class="side">
+        <div class="side-card">
+          <h3>📌 Cara Bermain</h3>
+          <div class="rules">
+            1. Klik <b>Lempar Dadu</b>.<br>
+            2. Pion bergerak satu langkah demi satu langkah.<br>
+            3. Saat tiba di kotak, jawab soal.<br>
+            4. Benar = mendapat poin.<br>
+            5. Tangga = naik ⬆️, ular = turun ⬇️.<br>
+            6. Kotak HOTS bernilai <b>20 poin</b>.<br>
+            7. Mencapai kotak 100 menjadi pemicu akhir permainan.
+          </div>
+        </div>
+
+        <div class="side-card">
+          <h3>🗺️ Legenda</h3>
+          <div class="legend">
+            <span>🟩 Soal konsep</span><span>🟨 Soal aplikasi</span>
+            <span>🔥 HOTS</span><span>🪜 Tangga</span>
+            <span>🐍 Ular</span><span>🔴/🔵 Pion</span>
+          </div>
+        </div>
+
+        <div class="side-card">
+          <h3>📜 Riwayat Permainan</h3>
+          <div id="log" class="log"></div>
+        </div>
+
+        <button class="restart" id="restartBtn">↩️ Kembali ke Halaman Awal</button>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<div id="questionModal" class="modal hidden">
+  <div class="modal-card">
+    <div id="modalEvent"></div>
+    <div class="modal-title" id="modalTitle">Kotak 1</div>
+    <div id="hotsLabel"></div>
+    <div class="question" id="questionText"></div>
+    <div class="options" id="options"></div>
+    <div id="explanation" class="explain hidden"></div>
+    <div class="modal-actions">
+      <button id="continueBtn" class="continue hidden">LANJUTKAN ▶</button>
+    </div>
+  </div>
+</div>
+
+<div id="winnerModal" class="modal hidden">
+  <div class="modal-card winner">
+    <div class="big">🏆</div>
+    <h2 id="winnerTitle"></h2>
+    <p id="winnerText"></p>
+    <button class="primary" id="winnerRestart">🔄 Main Lagi</button>
+  </div>
+</div>
+
+<script>
+/* =========================================================
+   ULAR TANGGA SISTEM PERNAPASAN - 1 FILE HTML
+   ========================================================= */
+
+const snakes = {
+  98: 78, 95: 75, 88: 48, 83: 62, 72: 51,
+  57: 37, 49: 29, 36: 17, 24: 7, 13: 4
+};
+const ladders = {
+  3: 22, 8: 30, 15: 44, 21: 41, 28: 56,
+  39: 60, 47: 68, 53: 73, 64: 84, 76: 97
+};
+
+/* 100 soal. Kotak HOTS ditandai hots:true. */
+const questions = [
+["Apa fungsi utama hidung dalam sistem pernapasan?",["Menyaring, menghangatkan, dan melembapkan udara","Memompa darah","Mencerna makanan","Menghasilkan empedu"],0,false,"Rambut dan lendir di hidung membantu menyaring partikel, sedangkan rongga hidung membantu menghangatkan dan melembapkan udara."],
+["Urutan jalannya udara yang benar adalah ...",["Hidung–faring–laring–trakea–bronkus–bronkiolus–alveolus","Hidung–trakea–faring–bronkus–alveolus","Faring–hidung–laring–alveolus–trakea","Hidung–laring–faring–trakea–alveolus"],0,false,"Udara bergerak dari hidung menuju faring, laring, trakea, bronkus, bronkiolus, lalu alveolus."],
+["Apa fungsi trakea?",["Mengalirkan udara menuju bronkus","Tempat utama pertukaran gas","Memompa darah","Menghasilkan suara saja"],0,false,"Trakea adalah saluran yang membawa udara dari laring menuju bronkus."],
+["Bronkus adalah ...",["Cabang trakea menuju paru-paru","Kantung udara mikroskopis","Otot utama pernapasan","Bagian dari hidung"],0,false,"Trakea bercabang menjadi bronkus kanan dan kiri yang menuju masing-masing paru-paru."],
+["Bronkiolus merupakan ...",["Cabang kecil dari bronkus","Cabang dari hidung","Otot dada","Bagian dari diafragma"],0,false,"Bronkiolus adalah cabang-cabang kecil dari bronkus yang mengarah ke alveolus."],
+["Di manakah pertukaran oksigen dan karbon dioksida terutama terjadi?",["Alveolus","Trakea","Hidung","Faring"],0,false,"Alveolus memiliki dinding tipis dan banyak kapiler sehingga cocok untuk pertukaran gas."],
+["Apa fungsi utama alveolus?",["Tempat pertukaran gas","Menyaring debu besar","Menggerakkan diafragma","Menghasilkan lendir hidung"],0,false,"Oksigen berpindah dari alveolus ke darah dan karbon dioksida berpindah dari darah ke alveolus."],
+["Organ utama sistem pernapasan adalah ...",["Paru-paru","Lambung","Jantung","Ginjal"],0,false,"Paru-paru merupakan organ utama tempat terjadinya proses pertukaran gas."],
+["Apa fungsi diafragma dalam pernapasan?",["Mengubah volume rongga dada","Menyaring udara di hidung","Menukar oksigen di alveolus","Membawa darah"],0,false,"Gerakan diafragma mengubah volume rongga dada sehingga membantu udara masuk dan keluar paru-paru."],
+["Inspirasi adalah proses ...",["Masuknya udara ke paru-paru","Keluarnya udara dari paru-paru","Pertukaran darah","Penyaringan makanan"],0,false,"Inspirasi disebut juga menarik napas, yaitu ketika udara masuk ke paru-paru."],
+
+["Saat inspirasi, diafragma umumnya ...",["Berkontraksi dan bergerak ke bawah","Relaksasi dan bergerak ke atas","Tidak bergerak","Menutup trakea"],0,false,"Diafragma berkontraksi dan mendatar/bergerak ke bawah sehingga volume rongga dada meningkat."],
+["Saat ekspirasi, diafragma umumnya ...",["Relaksasi dan bergerak ke atas","Berkontraksi dan bergerak ke bawah","Menutup bronkus","Mengembang menjadi alveolus"],0,false,"Saat ekspirasi normal, diafragma relaksasi dan bergerak ke atas sehingga volume rongga dada berkurang."],
+["Mengapa paru-paru mengembang saat inspirasi?",["Volume rongga dada bertambah sehingga udara masuk","Darah berhenti mengalir","Trakea menutup","Alveolus menghasilkan udara"],0,false,"Peningkatan volume rongga dada menurunkan tekanan di dalam paru-paru sehingga udara masuk."],
+["Apa yang terjadi pada volume rongga dada saat ekspirasi?",["Berkurang","Bertambah","Tetap selalu sama","Hilang"],0,false,"Saat diafragma bergerak ke atas, volume rongga dada berkurang."],
+["Satu kali frekuensi napas dihitung sebagai ...",["Satu kali menarik dan mengeluarkan napas","Satu kali menarik napas saja","Dua kali menarik napas","Satu kali batuk"],0,false,"Satu napas lengkap terdiri atas inspirasi dan ekspirasi."],
+["Jika seseorang bernapas 20 kali dalam satu menit, frekuensinya adalah ...",["20 napas/menit","10 napas/menit","40 napas/menit","60 napas/menit"],0,false,"Frekuensi napas dinyatakan sebagai jumlah napas dalam satu menit."],
+["Mengapa frekuensi napas dapat meningkat setelah berlari?",["Tubuh membutuhkan lebih banyak oksigen dan menghasilkan lebih banyak karbon dioksida","Paru-paru berhenti bekerja","Hidung berhenti menyaring udara","Tubuh tidak membutuhkan energi"],0,false,"Aktivitas fisik meningkatkan kebutuhan energi, sehingga kebutuhan oksigen dan pembuangan karbon dioksida meningkat."],
+["Setelah beristirahat beberapa menit, frekuensi napas biasanya ...",["Berangsur menurun","Selalu meningkat","Berhenti total","Tidak pernah berubah"],0,false,"Ketika kebutuhan oksigen kembali mendekati kondisi istirahat, frekuensi napas dapat berangsur turun."],
+["Mengapa kita tetap bernapas ketika tidur?",["Pernapasan sebagian besar diatur otomatis oleh tubuh","Karena kita sedang berolahraga","Karena hidung tidak bisa berhenti","Karena jantung berhenti"],0,false,"Pusat pengaturan pernapasan di otak membantu mengatur ritme napas secara otomatis."],
+["Apa hubungan oksigen dengan aktivitas sel tubuh?",["Oksigen digunakan dalam proses menghasilkan energi","Oksigen mengubah darah menjadi tulang","Oksigen menghentikan kerja sel","Oksigen hanya diperlukan saat tidur"],0,false,"Sel menggunakan oksigen dalam proses menghasilkan energi dari zat makanan."],
+
+["Seorang siswa mengalami hidung tersumbat, bersin, dan demam ringan. Gangguan yang paling mungkin berkaitan adalah ...",["Influenza","Patah tulang","Maag","Keseleo"],0,false,"Influenza dapat menimbulkan pilek, bersin, batuk, demam, dan rasa tidak nyaman."],
+["Asma berkaitan dengan ...",["Penyempitan dan peradangan saluran pernapasan","Kerusakan tulang kaki","Gangguan pencernaan","Kelebihan cairan di lambung"],0,false,"Pada asma, saluran pernapasan dapat mengalami peradangan dan penyempitan sehingga timbul sesak."],
+["Salah satu pemicu asma pada sebagian orang adalah ...",["Debu","Buku","Pensil","Air putih"],0,false,"Debu dapat menjadi salah satu pemicu pada orang yang sensitif, tetapi pemicu dapat berbeda pada tiap orang."],
+["Bronkitis adalah peradangan pada ...",["Bronkus","Alveolus saja","Hidung","Diafragma"],0,false,"Bronkitis merupakan peradangan pada bronkus."],
+["Salah satu faktor yang dapat meningkatkan risiko masalah pernapasan adalah ...",["Paparan asap rokok","Minum air putih","Tidur cukup","Udara bersih"],0,false,"Paparan asap rokok dapat mengiritasi saluran pernapasan dan meningkatkan risiko berbagai masalah kesehatan."],
+["Pneumonia merupakan ...",["Infeksi pada paru-paru","Patah tulang rusuk","Gangguan pada kulit","Infeksi pada gigi"],0,false,"Pneumonia merupakan infeksi pada paru-paru yang dapat menyebabkan peradangan."],
+["Mengapa orang dengan pneumonia dapat mengalami napas cepat?",["Gangguan pada paru dapat memengaruhi proses pertukaran gas","Karena paru-parunya berubah menjadi tulang","Karena hidung tertutup selamanya","Karena darah berhenti mengalir"],0,false,"Infeksi dan peradangan pada paru dapat mengganggu fungsi pernapasan sehingga napas dapat menjadi lebih cepat."],
+["Apa yang sebaiknya dilakukan jika seseorang mengalami kesulitan bernapas yang berat?",["Segera meminta bantuan orang dewasa dan mendapatkan pertolongan medis","Menyuruhnya menahan napas","Membiarkannya sendirian","Memaksanya berlari"],0,false,"Kesulitan bernapas yang berat memerlukan pertolongan segera."],
+["Mengapa asap rokok dapat mengganggu pernapasan?",["Dapat mengiritasi dan merusak saluran pernapasan","Membuat alveolus menjadi lebih besar selamanya","Mengubah udara menjadi oksigen murni","Menguatkan bronkus"],0,false,"Asap rokok mengandung berbagai zat yang dapat mengiritasi dan merusak sistem pernapasan."],
+["Apa tindakan yang membantu menjaga kesehatan sistem pernapasan?",["Menghindari asap rokok dan menjaga kebersihan","Sering menghirup asap","Menahan napas selama mungkin","Jarang bergerak"],0,false,"Menghindari asap, menjaga kebersihan, aktivitas fisik, istirahat, dan pola hidup sehat mendukung kesehatan tubuh."],
+
+["HOTS: Raka bernapas 18 kali/menit sebelum berjalan cepat dan 28 kali/menit setelahnya. Berapa kenaikannya?",["10 napas/menit","8 napas/menit","46 napas/menit","12 napas/menit"],0,true,"28 − 18 = 10 napas per menit."],
+["HOTS: Sinta bernapas 20 kali/menit sebelum aktivitas dan 32 kali/menit setelah aktivitas. Penjelasan paling tepat adalah ...",["Kebutuhan oksigen dan pembuangan karbon dioksida meningkat","Paru-paru berhenti bekerja","Tubuh tidak membutuhkan energi","Alveolus menutup total"],0,true,"Aktivitas meningkatkan kebutuhan energi sehingga kebutuhan pertukaran gas juga meningkat."],
+["HOTS: Jika diafragma bergerak ke bawah, apa yang kemungkinan terjadi?",["Volume rongga dada bertambah dan udara masuk","Volume rongga dada berkurang dan udara masuk","Udara keluar karena tekanan turun","Bronkus tertutup"],0,true,"Gerak diafragma ke bawah meningkatkan volume rongga dada dan membantu udara masuk."],
+["HOTS: Jika diafragma bergerak ke atas, apa yang terjadi?",["Volume rongga dada berkurang dan udara cenderung keluar","Volume rongga dada bertambah dan udara masuk","Alveolus menghasilkan oksigen","Hidung berhenti bekerja"],0,true,"Gerak ke atas mengurangi volume rongga dada sehingga udara terdorong keluar pada ekspirasi normal."],
+["HOTS: Data frekuensi napas: 18, 21, 25, 20, 30. Siapa yang memiliki frekuensi tertinggi?",["Siswa dengan 30 napas/menit","Siswa dengan 18 napas/menit","Siswa dengan 20 napas/menit","Siswa dengan 21 napas/menit"],0,true,"Angka terbesar adalah 30 napas per menit."],
+["HOTS: Dua siswa melakukan aktivitas yang sama, tetapi frekuensi napasnya berbeda. Kesimpulan paling tepat adalah ...",["Hasil dapat berbeda karena kondisi tubuh, kebugaran, emosi, dan faktor lain","Salah satu pasti sakit","Keduanya pasti salah mengukur","Frekuensi napas semua orang harus sama"],0,true,"Respons tubuh tidak selalu identik. Pengukuran perlu dilakukan dengan cara yang sama dan konteks diperhatikan."],
+["HOTS: Frekuensi napas seseorang tetap tinggi setelah aktivitas dan tidak berangsur turun setelah istirahat. Apa yang paling tepat dilakukan?",["Berhenti beraktivitas, beri tahu orang dewasa, dan perhatikan kondisi; jika ada keluhan berat cari pertolongan medis","Memaksa berlari lagi","Menahan napas","Mengabaikannya"],0,true,"Frekuensi napas perlu dilihat bersama kondisi dan gejala. Keluhan berat memerlukan pertolongan."],
+["HOTS: Mengapa udara yang masuk melalui hidung tidak langsung menuju alveolus?",["Udara melewati beberapa saluran seperti faring, laring, trakea, bronkus, dan bronkiolus","Karena alveolus berada di lambung","Karena paru-paru tidak memiliki saluran","Karena oksigen hanya masuk melalui kulit"],0,true,"Udara mengikuti saluran pernapasan sebelum mencapai alveolus."],
+["HOTS: Seorang siswa berada di ruangan penuh debu lalu mengalami sesak. Pernyataan paling tepat adalah ...",["Debu dapat menjadi pemicu pada sebagian orang dan perlu dihindari; kondisi sesak perlu ditangani dengan tepat","Debu pasti menyebabkan influenza","Semua orang pasti mengalami asma","Sesak berarti tubuh kekurangan makanan"],0,true,"Debu dapat memicu gejala pada orang tertentu, termasuk sebagian penderita asma."],
+["HOTS: Mengapa hasil pengukuran frekuensi napas sebaiknya dicatat?",["Agar dapat dibandingkan dan dianalisis berdasarkan data","Agar angka terlihat banyak","Agar semua siswa memiliki hasil sama","Agar tidak perlu melakukan pengukuran"],0,true,"Pencatatan membuat data dapat dibandingkan dan digunakan untuk menarik kesimpulan."],
+
+["Bagian hidung yang membantu menangkap debu adalah ...",["Rambut hidung dan lendir","Tulang kaki","Otot lengan","Gigi"],0,false,"Rambut dan lendir membantu menangkap sebagian partikel yang masuk bersama udara."],
+["Faring merupakan ...",["Saluran yang menjadi jalur udara dari hidung menuju laring","Tempat pertukaran gas utama","Otot pernapasan","Bagian dari jantung"],0,false,"Faring merupakan bagian saluran yang dilalui udara dari hidung menuju laring."],
+["Laring dikenal juga sebagai bagian yang berkaitan dengan ...",["Pita suara","Pertukaran gas di alveolus","Pencernaan makanan","Pemompaan darah"],0,false,"Laring mengandung pita suara dan menjadi jalur udara menuju trakea."],
+["Mengapa trakea memiliki lendir dan silia?",["Membantu menangkap dan menggerakkan partikel agar tidak masuk lebih jauh","Untuk menghasilkan darah","Untuk mencerna protein","Untuk memompa udara seperti jantung"],0,false,"Lendir menangkap partikel dan silia membantu menggerakkannya ke arah luar."],
+["Paru-paru kanan dan kiri berada di dalam ...",["Rongga dada","Rongga perut","Tengkorak","Panggul"],0,false,"Paru-paru berada di rongga dada dan dilindungi oleh tulang rusuk."],
+["Saat menarik napas, tekanan di dalam paru-paru dibandingkan tekanan udara luar menjadi ...",["Lebih rendah sehingga udara masuk","Lebih tinggi sehingga udara masuk","Sama selalu","Tidak berhubungan dengan udara"],0,false,"Peningkatan volume rongga dada membuat tekanan di dalam paru-paru turun sehingga udara masuk."],
+["Saat menghembuskan napas, tekanan di dalam paru-paru cenderung ...",["Meningkat sehingga udara keluar","Menurun sehingga udara keluar","Menjadi nol","Tidak berubah sama sekali"],0,false,"Penurunan volume rongga dada meningkatkan tekanan di dalam paru-paru sehingga udara keluar."],
+["Apa yang terjadi pada oksigen setelah mencapai alveolus?",["Sebagian berpindah ke darah","Semuanya berubah menjadi karbon dioksida","Masuk ke lambung","Keluar melalui kulit"],0,false,"Oksigen berdifusi dari alveolus menuju kapiler darah."],
+["Karbon dioksida dari darah menuju alveolus kemudian ...",["Dikeluarkan saat ekspirasi","Disimpan di tulang","Diubah menjadi makanan","Masuk ke lambung"],0,false,"Karbon dioksida berpindah ke alveolus dan dikeluarkan saat mengembuskan napas."],
+["Mengapa dinding alveolus tipis?",["Memudahkan pertukaran gas","Agar dapat menghasilkan suara","Agar tidak ada darah","Agar dapat mencerna makanan"],0,false,"Dinding yang tipis membantu difusi oksigen dan karbon dioksida."],
+
+["Aktivitas fisik ringan yang aman untuk praktikum frekuensi napas adalah ...",["Berjalan cepat di tempat","Menahan napas","Berlari sampai kelelahan","Melompat tanpa berhenti"],0,false,"Untuk praktikum kelas, aktivitas sebaiknya ringan dan aman."],
+["Saat menghitung frekuensi napas, satu napas berarti ...",["Tarik napas dan hembuskan napas","Tarik napas dua kali","Hembuskan napas dua kali","Satu kali batuk"],0,false,"Satu siklus napas terdiri dari inspirasi dan ekspirasi."],
+["Jika menghitung 30 detik dan memperoleh 12 napas, perkiraan per menit adalah ...",["24","12","30","42"],0,false,"12 × 2 = 24 napas per menit."],
+["Jika menghitung 30 detik dan memperoleh 15 napas, perkiraan per menit adalah ...",["30","15","45","60"],0,false,"15 × 2 = 30 napas per menit."],
+["Mengapa pengukuran sebaiknya dilakukan saat tubuh tenang?",["Agar data lebih menggambarkan frekuensi napas saat istirahat","Agar hasil pasti tinggi","Agar siswa cepat lelah","Agar tidak perlu mencatat"],0,false,"Kondisi tenang membantu memperoleh data yang sesuai dengan keadaan istirahat."],
+["Emosi seperti cemas dapat memengaruhi frekuensi napas karena ...",["Tubuh dapat merespons perubahan keadaan dengan mengubah pola napas","Emosi menghentikan kerja paru-paru","Cemas membuat alveolus hilang","Emosi mengubah bronkus menjadi tulang"],0,false,"Respons tubuh terhadap emosi dapat memengaruhi pola dan frekuensi napas."],
+["Mengapa frekuensi napas anak dan orang dewasa tidak selalu sama?",["Kondisi tubuh dan usia dapat memengaruhi frekuensi napas","Karena orang dewasa tidak punya paru-paru","Karena anak tidak membutuhkan oksigen","Karena hidung anak tidak bekerja"],0,false,"Frekuensi napas dipengaruhi berbagai faktor, termasuk usia dan kondisi tubuh."],
+["Apakah frekuensi napas yang lebih tinggi selalu berarti seseorang lebih sehat?",["Tidak; harus dilihat konteks dan kondisi tubuh","Ya, selalu","Hanya jika sedang tidur","Ya, tanpa pengecualian"],0,false,"Angka frekuensi napas perlu ditafsirkan sesuai aktivitas, keadaan tubuh, dan gejala."],
+["Mengapa kita perlu menghindari menahan napas terlalu lama?",["Tubuh tetap membutuhkan pertukaran oksigen dan karbon dioksida","Agar paru-paru menjadi lebih kecil","Agar jantung berhenti","Karena hidung akan hilang"],0,false,"Tubuh memerlukan pertukaran gas secara terus-menerus. Praktikum tidak boleh berupa lomba menahan napas."],
+["Kebiasaan yang mendukung kesehatan pernapasan adalah ...",["Aktivitas fisik teratur, istirahat cukup, kebersihan, dan menghindari asap rokok","Sering menghirup asap","Kurang tidur","Jarang bergerak"],0,false,"Kebiasaan sehat membantu menjaga fungsi tubuh dan sistem pernapasan."],
+
+["HOTS: Kelompok A mendapat data sebelum aktivitas 19, setelah aktivitas 29, setelah istirahat 21 napas/menit. Apa pola yang paling tepat?",["Naik setelah aktivitas lalu menurun mendekati kondisi awal","Terus meningkat tanpa perubahan","Terus menurun sejak awal","Tidak ada perubahan"],0,true,"Data menunjukkan kenaikan setelah aktivitas dan penurunan setelah istirahat."],
+["HOTS: Mengapa setelah aktivitas frekuensi napas kelompok tidak harus sama persis?",["Setiap anggota memiliki kondisi tubuh, kebugaran, dan respons yang dapat berbeda","Karena hanya satu orang yang bernapas","Karena paru-paru setiap orang tidak berfungsi","Karena aktivitas tidak berpengaruh"],0,true,"Respons fisiologis dapat berbeda antarindividu."],
+["HOTS: Jika seseorang menghitung 10 napas dalam 30 detik, berapa frekuensinya per menit?",["20","10","30","40"],0,true,"10 × 2 = 20 napas per menit."],
+["HOTS: Data A = 18→27, B = 20→31, C = 19→25. Siapa yang mengalami kenaikan terbesar?",["B","A","C","Semua sama"],0,true,"A naik 9, B naik 11, C naik 6. Jadi B paling besar."],
+["HOTS: Seorang siswa berkata, “Saya bernapas lebih cepat setelah lari karena paru-paru saya menjadi lebih besar.” Tanggapan paling tepat adalah ...",["Tidak tepat; kebutuhan oksigen meningkat dan tubuh meningkatkan ventilasi untuk memenuhi kebutuhan tersebut","Benar, paru-paru langsung membesar permanen","Benar, alveolus berubah menjadi otot","Tidak ada hubungan dengan aktivitas"],0,true,"Frekuensi napas meningkat terutama karena kebutuhan pertukaran gas meningkat, bukan karena paru-paru membesar permanen."],
+["HOTS: Jika udara di sebuah ruangan sangat berdebu, tindakan pencegahan yang paling masuk akal adalah ...",["Mengurangi paparan debu, memperbaiki kebersihan/ventilasi, dan menggunakan perlindungan yang sesuai","Menambah debu agar terbiasa","Menahan napas","Berolahraga di dalam ruangan tersebut"],0,true,"Mengurangi sumber dan paparan debu adalah langkah pencegahan yang logis."],
+["HOTS: Mengapa siswa dengan sesak berat sebaiknya tidak dipaksa terus melakukan aktivitas fisik?",["Aktivitas dapat memperberat kondisi dan ia membutuhkan penilaian serta bantuan yang tepat","Karena olahraga selalu berbahaya","Karena paru-paru tidak boleh bergerak","Karena bernapas harus dihentikan"],0,true,"Saat muncul sesak berat, keselamatan menjadi prioritas dan perlu bantuan yang tepat."],
+["HOTS: Sebuah kelompok menyimpulkan “aktivitas fisik menyebabkan penyakit pernapasan” hanya karena frekuensi napas meningkat setelah berjalan. Apa masalah kesimpulan itu?",["Mereka keliru membedakan respons normal terhadap aktivitas dengan tanda gangguan kesehatan","Kesimpulannya pasti benar","Data tidak perlu diperiksa","Frekuensi napas tidak pernah berubah"],0,true,"Peningkatan frekuensi napas setelah aktivitas dapat merupakan respons normal tubuh."],
+["HOTS: Mengapa kita perlu menghubungkan data frekuensi napas dengan jenis aktivitas?",["Karena aktivitas yang berbeda memberikan kebutuhan energi dan respons tubuh yang berbeda","Karena semua aktivitas menghasilkan data yang sama","Agar angka terlihat lebih banyak","Karena jenis aktivitas tidak penting"],0,true,"Konteks aktivitas membantu menjelaskan perubahan frekuensi napas."],
+["HOTS: Manakah kesimpulan yang paling kuat setelah praktikum?",["Aktivitas fisik dapat meningkatkan frekuensi napas, lalu frekuensi dapat menurun setelah istirahat","Semua orang memiliki frekuensi napas yang sama","Napas cepat selalu berarti sakit","Frekuensi napas tidak dipengaruhi aktivitas"],0,true,"Kesimpulan harus berdasarkan pola data yang diamati dan tidak berlebihan."],
+
+["Apa fungsi rambut hidung?",["Membantu menyaring partikel","Menghasilkan oksigen","Menggerakkan diafragma","Menukar gas"],0,false,"Rambut hidung membantu menangkap sebagian partikel yang masuk bersama udara."],
+["Apa fungsi lendir pada saluran pernapasan?",["Menangkap sebagian debu dan partikel","Menghasilkan darah","Membuat tulang","Mengubah oksigen menjadi makanan"],0,false,"Lendir membantu menangkap partikel dan menjaga permukaan saluran pernapasan tetap lembap."],
+["Mengapa kita sebaiknya menutup mulut dan hidung saat batuk atau bersin?",["Mengurangi penyebaran percikan yang dapat membawa kuman","Agar batuk menjadi lebih keras","Agar oksigen berhenti masuk","Agar suara hilang"],0,false,"Etika batuk dan bersin membantu mengurangi penyebaran percikan."],
+["Cara mencuci tangan membantu kesehatan pernapasan terutama karena ...",["Dapat mengurangi kuman yang berpindah dari tangan","Membuat paru-paru membesar","Mengganti fungsi hidung","Menghasilkan oksigen"],0,false,"Tangan dapat menjadi perantara perpindahan kuman ke hidung, mulut, atau mata."],
+["Mengapa istirahat cukup mendukung kesehatan tubuh?",["Memberi kesempatan tubuh memulihkan diri","Membuat paru-paru berhenti bekerja","Menghilangkan kebutuhan oksigen","Menghentikan jantung"],0,false,"Istirahat mendukung pemulihan dan fungsi tubuh secara keseluruhan."],
+["Apa hubungan sistem pernapasan dan sistem peredaran darah?",["Darah membawa oksigen dari paru-paru ke seluruh tubuh dan membawa karbon dioksida kembali","Keduanya tidak berhubungan","Paru-paru memompa darah","Jantung melakukan pertukaran gas di alveolus"],0,false,"Oksigen dari paru-paru diangkut darah ke jaringan, sedangkan karbon dioksida dibawa kembali ke paru-paru."],
+["Mengapa paru-paru memiliki banyak alveolus?",["Agar luas permukaan pertukaran gas menjadi besar","Agar dapat mencerna makanan","Agar dapat menghasilkan tulang","Agar tidak membutuhkan darah"],0,false,"Banyak alveolus menyediakan luas permukaan besar untuk pertukaran gas."],
+["Apa yang terjadi jika saluran pernapasan teriritasi?",["Dapat muncul batuk atau rasa tidak nyaman","Pasti menghasilkan makanan","Tulang menjadi panjang","Darah berhenti mengalir"],0,false,"Iritasi dapat memicu respons seperti batuk dan rasa tidak nyaman."],
+["Mengapa kualitas udara penting bagi kesehatan pernapasan?",["Karena kita menghirup udara terus-menerus dan udara membawa berbagai partikel/gas ke saluran pernapasan","Karena udara hanya masuk saat berlari","Karena udara tidak pernah berpengaruh","Karena paru-paru tidak membutuhkan udara"],0,false,"Sistem pernapasan berhubungan langsung dengan udara yang kita hirup."],
+["Apa pesan utama dari materi sistem pernapasan?",["Kenali cara kerja pernapasan dan jaga kesehatan organ pernapasan","Bernapas hanya diperlukan saat olahraga","Menahan napas membuat paru-paru selalu sehat","Asap rokok membantu paru-paru"],0,false,"Memahami mekanisme pernapasan membantu kita memahami pentingnya menjaga kesehatan sistem pernapasan."]
+];
+
+let state = {
+  players:[
+    {name:"Kelompok 1",pos:1,score:0},
+    {name:"Kelompok 2",pos:1,score:0}
+  ],
+  current:0, moving:false, answered:false, winner:null
+};
+
+const board = document.getElementById("board");
+const landing = document.getElementById("landing");
+const game = document.getElementById("game");
+const modal = document.getElementById("questionModal");
+const winnerModal = document.getElementById("winnerModal");
+const diceEl = document.getElementById("dice");
+const rollBtn = document.getElementById("rollBtn");
+const logEl = document.getElementById("log");
+
+function cellIndex(n){ return n-1; }
+function gridPosition(n){
+  // 1 bottom-left, 10 bottom-right, 11 next row right-to-left, etc.
+  const row = Math.floor((n-1)/10);
+  const colIn = (n-1)%10;
+  const col = row%2===0 ? colIn : 9-colIn;
+  return {rowFromBottom:row,col};
+}
+function cellCenter(n){
+  const p=gridPosition(n);
+  return {x:(p.col+.5)*100/10,y:100-(p.rowFromBottom+.5)*100/10};
+}
+function createBoard(){
+  board.innerHTML="";
+  // CSS grid is visually ordered top-to-bottom, so create numbers from 100 down to 1.
+  for(let n=100;n>=1;n--){
+    const c=document.createElement("div");
+    c.className="cell";
+    c.dataset.n=n;
+    const num=document.createElement("span");
+    num.className="cell-num"; num.textContent=n;
+    c.appendChild(num);
+    const q=document.createElement("span");
+    q.className="cell-q"; q.textContent="❓";
+    c.appendChild(q);
+    if(ladders[n]){
+      const m=document.createElement("span"); m.className="marker ladder"; m.textContent="🪜";
+      c.appendChild(m);
+    } else if(snakes[n]){
+      const m=document.createElement("span"); m.className="marker snake"; m.textContent="🐍";
+      c.appendChild(m);
+    }
+    board.appendChild(c);
+  }
+  // Mark HOTS cells visually
+  const hotsCells = [33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,
+                     58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,
+                     85,86,87,88,89,90,91,92,93,94,95,96,97,98,99,100];
+  hotsCells.forEach(n=>{
+    const el=board.querySelector(`[data-n="${n}"]`);
+    if(el) el.style.background = "linear-gradient(135deg,#fff0c4,#ffe3e3)";
+  });
+  renderPawns();
+}
+function pawnEl(id){
+  let p=document.getElementById(id);
+  if(!p){
+    p=document.createElement("div"); p.id=id; p.className="pawn";
+    p.textContent=id==="pawn1"?"🔴":"🔵"; board.appendChild(p);
+  }
+  return p;
+}
+function renderPawns(){
+  state.players.forEach((pl,i)=>{
+    const el=pawnEl("pawn"+(i+1));
+    const c=cellCenter(pl.pos);
+    // Slight offset so two pawns can be seen on same square
+    const ox=i===0?-12:12;
+    el.style.left=`calc(${c.x}% + ${ox}px)`;
+    el.style.top=`${c.y}%`;
+  });
+}
+function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
+async function movePawn(playerIndex, from, to){
+  const p=state.players[playerIndex];
+  const el=pawnEl("pawn"+(playerIndex+1));
+  const dir=to>=from?1:-1;
+  for(let n=from+dir;;n+=dir){
+    p.pos=n;
+    const c=cellCenter(n), ox=playerIndex===0?-12:12;
+    el.style.left=`calc(${c.x}% + ${ox}px)`;
+    el.style.top=`${c.y}%`;
+    el.classList.add("move");
+    await sleep(190);
+    el.classList.remove("move");
+    if(n===to) break;
+  }
+}
+function updateUI(){
+  document.querySelector("#team1 .team-name").textContent=state.players[0].name;
+  document.querySelector("#team2 .team-name").textContent=state.players[1].name;
+  document.getElementById("score1").textContent=state.players[0].score;
+  document.getElementById("score2").textContent=state.players[1].score;
+  document.getElementById("team1").classList.toggle("active",state.current===0);
+  document.getElementById("team2").classList.toggle("active",state.current===1);
+  document.getElementById("turn").textContent=`Giliran: ${state.players[state.current].name}`;
+}
+function log(msg){
+  const d=document.createElement("div"); d.textContent=msg; logEl.prepend(d);
+}
+function getQuestion(pos){
+  return questions[(pos-1)%questions.length];
+}
+function showQuestion(pos,eventText=""){
+  const q=getQuestion(pos);
+  document.getElementById("modalTitle").textContent=`Kotak ${pos}`;
+  document.getElementById("questionText").textContent=q[0];
+  document.getElementById("hotsLabel").innerHTML=q[3]?'<span class="hots-label">🔥 HOTS • 20 POIN</span>':'<span class="badge">⭐ 10 POIN</span>';
+  document.getElementById("modalEvent").innerHTML=eventText?`<div class="event ${eventText.includes("Tangga")?"ladder":"snake"}">${eventText}</div>`:"";
+  const opts=document.getElementById("options"); opts.innerHTML="";
+  document.getElementById("explanation").classList.add("hidden");
+  document.getElementById("continueBtn").classList.add("hidden");
+  q[1].forEach((txt,i)=>{
+    const b=document.createElement("button"); b.className="option"; b.textContent=String.fromCharCode(65+i)+". "+txt;
+    b.onclick=()=>answerQuestion(i,q,b,opts);
+    opts.appendChild(b);
+  });
+  state.answered=false;
+  modal.classList.remove("hidden");
+}
+function answerQuestion(choice,q,clicked,opts){
+  if(state.answered)return;
+  state.answered=true;
+  const correct=choice===q[2];
+  [...opts.children].forEach((b,i)=>{
+    b.disabled=true;
+    if(i===q[2]) b.classList.add("correct");
+  });
+  if(!correct) clicked.classList.add("wrong");
+  const pts=q[3]?20:10;
+  if(correct){
+    state.players[state.current].score+=pts;
+    log(`✅ ${state.players[state.current].name} benar di kotak ${state.players[state.current].pos} (+${pts})`);
+  }else{
+    log(`❌ ${state.players[state.current].name} belum tepat di kotak ${state.players[state.current].pos}`);
+  }
+  updateUI();
+  const ex=document.getElementById("explanation");
+  ex.innerHTML=(correct?"<b>Benar!</b> ":"<b>Jawaban yang tepat:</b> ")+q[1][q[2]]+"<br><br>"+q[4];
+  ex.classList.remove("hidden");
+  document.getElementById("continueBtn").classList.remove("hidden");
+}
+document.getElementById("continueBtn").onclick=()=>{
+  modal.classList.add("hidden");
+  state.current=1-state.current;
+  state.moving=false;
+  updateUI();
+  rollBtn.disabled=false;
+};
+async function takeTurn(){
+  if(state.moving)return;
+  state.moving=true; rollBtn.disabled=true;
+  const pl=state.players[state.current];
+  const roll=Math.floor(Math.random()*6)+1;
+  diceEl.textContent=["⚀","⚁","⚂","⚃","⚄","⚅"][roll-1];
+  diceEl.classList.remove("rolling"); void diceEl.offsetWidth; diceEl.classList.add("rolling");
+  log(`🎲 ${pl.name} mendapat ${roll}`);
+  let target=Math.min(100,pl.pos+roll);
+  if(pl.pos+roll>100){
+    log(`↩️ ${pl.name} belum bisa melewati kotak 100.`);
+    await sleep(500);
+    state.current=1-state.current; state.moving=false; updateUI(); rollBtn.disabled=false; return;
+  }
+  await movePawn(state.current,pl.pos,target);
+  if(target===100){
+    // Still ask the question on 100 before ending.
+    showQuestion(100,"🏁 Kotak 100! Jawab soal terakhir untuk menentukan skor akhir.");
+    document.getElementById("continueBtn").onclick=()=>{
+      modal.classList.add("hidden");
+      finishGame();
+    };
+    return;
+  }
+  if(ladders[target]){
+    log(`🪜 Tangga! ${pl.name} naik dari ${target} ke ${ladders[target]}.`);
+    await sleep(450);
+    await movePawn(state.current,target,ladders[target]);
+    showQuestion(ladders[target],`🪜 Tangga! Naik dari ${target} → ${ladders[target]}`);
+  } else if(snakes[target]){
+    log(`🐍 Ular! ${pl.name} turun dari ${target} ke ${snakes[target]}.`);
+    await sleep(450);
+    await movePawn(state.current,target,snakes[target]);
+    showQuestion(snakes[target],`🐍 Ular! Turun dari ${target} → ${snakes[target]}`);
+  } else {
+    showQuestion(target);
+  }
+}
+function finishGame(){
+  const a=state.players[0],b=state.players[1];
+  state.winner=a.score===b.score?"Hasil Seri!":(a.score>b.score?a.name:b.name);
+  document.getElementById("winnerTitle").textContent=state.winner==="Hasil Seri!"?"🤝 Hasil Seri!":`🏆 ${state.winner}`;
+  document.getElementById("winnerText").innerHTML=
+    `<b>${a.name}</b>: ${a.score} poin<br><b>${b.name}</b>: ${b.score} poin<br><br>`+
+    `Permainan selesai setelah mencapai kotak 100.`;
+  winnerModal.classList.remove("hidden");
+}
+function reset(){
+  state={players:[
+    {name:"Kelompok 1",pos:1,score:0},
+    {name:"Kelompok 2",pos:1,score:0}
+  ],current:0,moving:false,answered:false,winner:null};
+  logEl.innerHTML="";
+  diceEl.textContent="🎲";
+  createBoard();updateUI();
+}
+document.getElementById("startBtn").onclick=()=>{
+  const n1=document.getElementById("name1").value.trim()||"Kelompok 1";
+  const n2=document.getElementById("name2").value.trim()||"Kelompok 2";
+  state.players[0].name=n1;state.players[1].name=n2;
+  landing.classList.add("hidden");game.classList.remove("hidden");
+  reset();
+  state.players[0].name=n1;state.players[1].name=n2;updateUI();
+  log(`🎉 Permainan dimulai. ${n1} bermain lebih dulu.`);
+};
+rollBtn.onclick=takeTurn;
+document.getElementById("restartBtn").onclick=()=>{
+  game.classList.add("hidden");landing.classList.remove("hidden");
+};
+document.getElementById("winnerRestart").onclick=()=>{
+  winnerModal.classList.add("hidden");game.classList.add("hidden");landing.classList.remove("hidden");
+};
+createBoard();
+updateUI();
+</script>
+</body>
+</html>
+'''
+
+path = Path("/mnt/data/Ular_Tangga_Sistem_Pernapasan_Kelas_VI.html")
+path.write_text(html, encoding="utf-8")
+print(f"File berhasil dibuat: {path}")
+print(f"Ukuran: {path.stat().st_size/1024:.1f} KB")
